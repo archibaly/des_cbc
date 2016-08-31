@@ -27,22 +27,20 @@ unsigned char *des_cbc_encrypt(const unsigned char *clear_text, int *text_len,
 	DES_key_schedule key_schedule;
 	DES_set_key_unchecked(&key_encrypt, &key_schedule);	
 
-	/* PKCS5 padding */
-	unsigned char padding_len;
-	padding_len = *text_len % 8 > 0 ? 8 - *text_len % 8 : 0;
+	/* PKCS7 padding */
+	unsigned char padding_len = 8 - *text_len % 8;
 
 	int len = *text_len + padding_len;
-	unsigned char clear_text_tmp[len];
-
-	memcpy(clear_text_tmp, clear_text, *text_len);
-	for (i = 0; i < padding_len; i++)
-		clear_text_tmp[*text_len + i] = padding_len;
-
 	unsigned char *cipher_text = malloc(len);
-	if (!cipher_text)
+	if (!cipher_text) {
 		return NULL;
+	}
 
-	DES_ncbc_encrypt(clear_text_tmp, cipher_text, len, &key_schedule, &ivec, DES_ENCRYPT);
+	memcpy(cipher_text, clear_text, *text_len);
+	for (i = 0; i < padding_len; i++)
+		cipher_text[*text_len + i] = padding_len;
+
+	DES_ncbc_encrypt(cipher_text, cipher_text, len, &key_schedule, &ivec, DES_ENCRYPT);
 
 	*text_len = len;
 
@@ -71,7 +69,7 @@ unsigned char *des_cbc_decrypt(const unsigned char *cipher_text, int *text_len,
 	DES_key_schedule key_schedule;
 	DES_set_key_unchecked(&key_encrypt, &key_schedule);	
 
-	unsigned char *clear_text = malloc(*text_len);
+	unsigned char *clear_text = malloc(*text_len + 1);
 	if (!clear_text)
 		return NULL;
 
@@ -79,16 +77,11 @@ unsigned char *des_cbc_decrypt(const unsigned char *cipher_text, int *text_len,
 
 	int padding_len = clear_text[*text_len - 1];
 
-	if (padding_len >= 1 && padding_len <= 7) {
+	if (padding_len >= 1 && padding_len <= 8) {
 		*text_len -= padding_len;
-		unsigned char *clear_text_tmp = malloc(*text_len);
-		if (!clear_text_tmp) {
-			free(clear_text);
-			return NULL;
-		}
-		memcpy(clear_text_tmp, clear_text, *text_len);
+	} else {
 		free(clear_text);
-		clear_text = clear_text_tmp;
+		return NULL;
 	}
 
 	return clear_text;

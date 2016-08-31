@@ -2,7 +2,8 @@ CC = gcc
 EXE = cbc
 CFLAGS = -Wall
 
-$(EXE): main.o cbc.o ncbc_enc.o set_key.o str2key.o cbc_cksm.o
+$(EXE): main.o cbc.o ncbc_enc.o set_key.o str2key.o cbc_cksm.o \
+	base64.o
 	$(CC) -o $@ $^
 
 %.o: %.c
